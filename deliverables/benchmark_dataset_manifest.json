@@ -1,0 +1,93 @@
+{
+  "benchmark": "AeroEval-SWE-Bench",
+  "version": "1.0.0",
+  "author": "Gopi Naga Vignesh Thirupati",
+  "license": "MIT",
+  "tasks_count": 5,
+  "instances": [
+    {
+      "instance_id": "AERO-001",
+      "repository": "aero-flight-dynamics",
+      "domain": "Aerodynamics / Numerical Singularities",
+      "difficulty": "Hard",
+      "problem_statement": "Prandtl-Glauert compressibility correction in AeroCoefficients raises ZeroDivisionError or numerical infinity when flight velocity reaches Mach 1.0 (sonic singularity). Implement a smooth hyperbolic tangent (tanh) transonic saturation bridge connecting subsonic and supersonic wave drag regimes without discontinuity.",
+      "hints": "Check denominator 1 - Mach^2. Clip between Mach 0.95 and 1.05 using transonic wave drag model.",
+      "fail_to_pass_tests": [
+        "test_transonic_drag_saturation_finite",
+        "test_transonic_drag_monotonic_continuity"
+      ],
+      "pass_to_pass_tests": [
+        "test_subsonic_drag_polar",
+        "test_supersonic_wave_drag"
+      ],
+      "reference_patch": "--- a/src/aeroflight/coefficients.py\n+++ b/src/aeroflight/coefficients.py\n@@ -10,3 +10,6 @@ def compute_cd(mach: float, cd0: float) -> float:\n-    beta = math.sqrt(1.0 - mach**2)\n-    return cd0 / beta\n+    if 0.95 <= mach <= 1.05:\n+        return cd0 * 3.5 * math.tanh((mach - 0.95) / 0.1)\n"
+    },
+    {
+      "instance_id": "AERO-002",
+      "repository": "orbital-telemetry-agent",
+      "domain": "Astrodynamics / Coordinate Systems",
+      "difficulty": "Medium",
+      "problem_statement": "Ground station tracking azimuth angle undergoes 360-degree branch-cut discontinuity when satellite passes directly through the local zenith point (elevation > 89.9 deg). Add unwrapping logic to ensure smooth gimbal slewing commands.",
+      "hints": "Normalize azimuth difference using modulo 360 or atan2(sin(delta), cos(delta)).",
+      "fail_to_pass_tests": [
+        "test_zenith_pass_azimuth_continuity",
+        "test_gimbal_slew_rate_within_limits"
+      ],
+      "pass_to_pass_tests": [
+        "test_horizon_acquisition_elevation",
+        "test_doppler_shift_calculation"
+      ],
+      "reference_patch": "--- a/src/orbital_agent/tracking/pass_predictor.py\n+++ b/src/orbital_agent/tracking/pass_predictor.py\n@@ -25,2 +25,4 @@ def compute_azimuth_rates(azimuths: list[float]) -> list[float]:\n-    diff = az[i] - az[i-1]\n+    diff = (az[i] - az[i-1] + 180.0) % 360.0 - 180.0\n"
+    },
+    {
+      "instance_id": "AERO-003",
+      "repository": "cfd-airfoil-surrogate",
+      "domain": "Computational Fluid Dynamics / Discretization",
+      "difficulty": "Hard",
+      "problem_statement": "Vortex panel solver produces non-zero lift on symmetric NACA 0012 airfoil at alpha=0 due to unequal trailing-edge panel spacing in linear discretization. Replace uniform spacing with full cosine cluster discretization x = 0.5 * (1 - cos(theta)).",
+      "hints": "Enforce trailing edge Kutta condition closure: gamma_1 + gamma_N = 0.",
+      "fail_to_pass_tests": [
+        "test_symmetric_airfoil_zero_lift_exact",
+        "test_kutta_condition_trailing_edge"
+      ],
+      "pass_to_pass_tests": [
+        "test_cambered_airfoil_lift_slope",
+        "test_squire_young_profile_drag"
+      ],
+      "reference_patch": "--- a/src/cfd_surrogate/core/airfoil.py\n+++ b/src/cfd_surrogate/core/airfoil.py\n@@ -15,2 +15,3 @@ def generate_panels(n: int) -> np.ndarray:\n-    return np.linspace(0.0, 1.0, n)\n+    beta = np.linspace(0, np.pi, n)\n+    return 0.5 * (1.0 - np.cos(beta))\n"
+    },
+    {
+      "instance_id": "AERO-004",
+      "repository": "openengineering-toolkit",
+      "domain": "Solid Mechanics / Analytical Formulas",
+      "difficulty": "Medium",
+      "problem_statement": "Euler-Bernoulli simply supported center-load deflection test hardcoded an erroneous denominator coefficient (96 vs correct 48), causing CI test failures. Update formula and test expectations to analytical P * L^3 / (48 * E * I).",
+      "hints": "Check standard beam deflection tables: central point load max deflection delta = P*L^3 / (48*E*I).",
+      "fail_to_pass_tests": [
+        "test_center_load_max_deflection_exact"
+      ],
+      "pass_to_pass_tests": [
+        "test_center_load_max_moment",
+        "test_bending_stress_magnitude"
+      ],
+      "reference_patch": "--- a/tests/test_beam.py\n+++ b/tests/test_beam.py\n@@ -16,1 +16,1 @@\n-    assert simply_supported_center_load_max_deflection(1000, 2, 200e9, 1e-6) == pytest.approx(0.0004166666667)\n+    assert simply_supported_center_load_max_deflection(1000, 2, 200e9, 1e-6) == pytest.approx(0.0008333333333)\n"
+    },
+    {
+      "instance_id": "AERO-005",
+      "repository": "aero-flight-dynamics",
+      "domain": "Propulsion & Ballistics / Numerical ODEs",
+      "difficulty": "Hard",
+      "problem_statement": "Solid rocket motor burn mass flow causes negative propellant mass when simulation time step dt exceeds residual burn time at burnout. Implement fractional-step burn cutoff clamp ensuring m_propellant >= 0.0.",
+      "hints": "Clamp burnout propellant to 0.0 and truncate thrust impulse proportionally.",
+      "fail_to_pass_tests": [
+        "test_motor_burnout_propellant_non_negative",
+        "test_exact_total_impulse_conservation"
+      ],
+      "pass_to_pass_tests": [
+        "test_steady_state_thrust_profile",
+        "test_sea_level_isp"
+      ],
+      "reference_patch": "--- a/src/aeroflight/motor.py\n+++ b/src/aeroflight/motor.py\n@@ -40,2 +40,3 @@ def step_burn(self, dt: float) -> float:\n-    self.propellant_mass -= mdot * dt\n+    consumed = min(self.propellant_mass, mdot * dt)\n+    self.propellant_mass -= consumed\n"
+    }
+  ]
+}
