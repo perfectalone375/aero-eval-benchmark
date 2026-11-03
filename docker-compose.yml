@@ -1,0 +1,13 @@
+services:
+  aero-eval:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    image: perfectalone375/aero-eval-benchmark:latest
+    container_name: aero-eval-harness
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    environment:
+      - PYTHONUNBUFFERED=1
