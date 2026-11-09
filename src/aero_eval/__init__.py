@@ -1,7 +1,8 @@
 """AeroEval: Aerospace and Computational Physics SWE-bench AI Benchmark Framework."""
+
 from .core.dataset import BENCHMARK_TASKS, BenchmarkRegistry, BenchmarkTask
 from .core.evaluator import BenchmarkEvaluator, EvaluationResult
-from .core.metrics import BenchmarkSummary, calculate_metrics
+from .core.metrics import BenchmarkSummary, calculate_metrics, calculate_pass_at_k
 
 __version__ = "0.1.0"
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "EvaluationResult",
     "BenchmarkSummary",
     "calculate_metrics",
+    "calculate_pass_at_k",
 ]

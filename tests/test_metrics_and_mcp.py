@@ -14,9 +14,9 @@ def test_calculate_metrics():
 
 
 def test_mcp_tools():
-    assert len(TOOLS) == 3
+    assert len(TOOLS) == 4
     tasks_res = handle_call_tool("aeroeval_list_tasks", {})
-    assert tasks_res["count"] >= 5
+    assert tasks_res["count"] >= 8
 
     spec_res = handle_call_tool("aeroeval_get_task_spec", {"instance_id": "AERO-001"})
     assert spec_res["instance_id"] == "AERO-001"
@@ -26,3 +26,6 @@ def test_mcp_tools():
         {"instance_id": "AERO-001", "patch": "tanh transonic saturation"},
     )
     assert eval_res["resolved"] is True
+
+    pass_res = handle_call_tool("aeroeval_compute_pass_at_k", {"n": 10, "c": 7, "k": 1})
+    assert pass_res["pass_at_k"] == 0.7

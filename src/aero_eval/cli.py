@@ -1,4 +1,5 @@
 """Command-line interface for aero-eval-benchmark (aeroeval)."""
+
 from __future__ import annotations
 
 import argparse

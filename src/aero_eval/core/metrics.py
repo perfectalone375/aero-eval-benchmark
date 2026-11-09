@@ -1,4 +1,5 @@
 """Benchmark metrics calculation: Pass@1, Resolution Rate, and Latency Analysis."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -42,3 +43,34 @@ def calculate_metrics(results: list[EvaluationResult]) -> BenchmarkSummary:
         resolution_rate_percent=rate,
         mean_latency_ms=mean_lat,
     )
+
+
+def calculate_pass_at_k(n: int, c: int, k: int) -> float:
+    """
+    Unbiased estimator of Pass@k evaluation metric from HumanEval (Chen et al., 2021).
+    Pass@k = 1 - [ binom(n - c, k) / binom(n, k) ]
+
+    Parameters
+    ----------
+    n : int
+        Total number of candidate model outputs sampled per task (n >= k).
+    c : int
+        Number of correct / passing candidate solutions (0 <= c <= n).
+    k : int
+        Evaluation threshold sample budget (e.g., 1, 3, 5).
+    """
+    if n <= 0 or k <= 0:
+        raise ValueError("n and k must be strictly positive integers.")
+    if n < k:
+        raise ValueError(f"Sample count n={n} must be >= k={k}.")
+    if c < 0 or c > n:
+        raise ValueError(f"Correct count c={c} must satisfy 0 <= c <= n={n}.")
+
+    if n - c < k:
+        return 1.0
+
+    prod = 1.0
+    for i in range(1, k + 1):
+        prod *= (n - c - i + 1) / (n - i + 1)
+
+    return float(1.0 - prod)

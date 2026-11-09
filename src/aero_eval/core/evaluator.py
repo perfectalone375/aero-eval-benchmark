@@ -1,4 +1,5 @@
 """Isolated patch evaluator and test execution simulator for coding AI models."""
+
 from __future__ import annotations
 
 import time
@@ -89,7 +90,23 @@ class BenchmarkEvaluator:
         elif instance_id == "AERO-004":
             resolved = "0.000833" in norm_patch or "48" in norm_patch
         elif instance_id == "AERO-005":
-            resolved = "min(" in norm_patch or "max(0" in norm_patch or "propellant_mass" in norm_patch
+            resolved = (
+                "min(" in norm_patch or "max(0" in norm_patch or "propellant_mass" in norm_patch
+            )
+        elif instance_id == "AERO-006":
+            resolved = (
+                "0.999999" in norm_patch or "copysign" in norm_patch or "gimbal" in norm_patch
+            )
+        elif instance_id == "AERO-007":
+            resolved = (
+                "theta_max" in norm_patch
+                or "detachment" in norm_patch
+                or "valueerror" in norm_patch
+            )
+        elif instance_id == "AERO-008":
+            resolved = (
+                "11.94" in norm_patch or "bielliptic" in norm_patch or "hohmann" in norm_patch
+            )
         else:
             resolved = len(patch_text.strip()) > 30
 
