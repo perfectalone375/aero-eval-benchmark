@@ -1,4 +1,5 @@
 """Model Context Protocol (MCP) Server for AeroEval Benchmark Runner."""
+
 from __future__ import annotations
 
 import json
@@ -7,6 +8,7 @@ from typing import Any
 
 from ..core.dataset import BenchmarkRegistry
 from ..core.evaluator import BenchmarkEvaluator
+from ..core.metrics import calculate_pass_at_k
 
 TOOLS = [
     {
@@ -35,6 +37,31 @@ TOOLS = [
                 "patch": {"type": "string", "description": "Unified diff patch string"},
             },
             "required": ["instance_id", "patch"],
+        },
+    },
+    {
+        "name": "aeroeval_compute_pass_at_k",
+        "description": "Calculate unbiased Pass@k benchmark evaluation metric from sample count n, correct count c, and budget k.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "n": {
+                    "type": "integer",
+                    "description": "Total candidate solutions sampled",
+                    "default": 10,
+                },
+                "c": {
+                    "type": "integer",
+                    "description": "Number of passing solutions",
+                    "default": 7,
+                },
+                "k": {
+                    "type": "integer",
+                    "description": "Sample budget k (e.g. 1, 3, 5)",
+                    "default": 1,
+                },
+            },
+            "required": ["n", "c", "k"],
         },
     },
 ]
@@ -67,6 +94,18 @@ def handle_call_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
         patch = args["patch"]
         res = evaluator_instance.evaluate_patch(inst_id, patch)
         return res.to_dict()
+    elif name == "aeroeval_compute_pass_at_k":
+        n = int(args["n"])
+        c = int(args["c"])
+        k = int(args["k"])
+        val = calculate_pass_at_k(n, c, k)
+        return {
+            "n": n,
+            "c": c,
+            "k": k,
+            "pass_at_k": round(val, 4),
+            "pass_at_k_percent": round(val * 100.0, 2),
+        }
     else:
         raise ValueError(f"Unknown tool: {name}")
 
@@ -106,10 +145,18 @@ def main() -> None:
                     },
                 }
             else:
-                resp = {"jsonrpc": "2.0", "id": msg_id, "error": {"code": -32601, "message": f"Method {method} not found"}}
+                resp = {
+                    "jsonrpc": "2.0",
+                    "id": msg_id,
+                    "error": {"code": -32601, "message": f"Method {method} not found"},
+                }
             print(json.dumps(resp), flush=True)
         except Exception as err:
-            err_resp = {"jsonrpc": "2.0", "id": None, "error": {"code": -32000, "message": str(err)}}
+            err_resp = {
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {"code": -32000, "message": str(err)},
+            }
             print(json.dumps(err_resp), flush=True)
 
 
